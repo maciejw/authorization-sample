@@ -1,0 +1,83 @@
+# Run ../Generate-SampleTokens.ps1 and select the dev environment in Visual Studio.
+# Select dev environment here
+
+### List transfers as viewer - expected 200
+GET {{Api1_HostAddress}}/transfers
+Authorization: Bearer {{viewerToken}}
+
+### Inspect transfer as viewer - expected 200
+GET {{Api1_HostAddress}}/transfers/1
+Authorization: Bearer {{viewerToken}}
+
+### Create standard transfer as cashier - expected 200
+POST {{Api1_HostAddress}}/transfers
+Authorization: Bearer {{cashierToken}}
+Content-Type: application/json
+
+{ "amount": 1000 }
+
+### Higher-limit transfer as cashier - expected 403
+POST {{Api1_HostAddress}}/transfers
+Authorization: Bearer {{cashierToken}}
+Content-Type: application/json
+
+{ "amount": 1001 }
+
+### Higher-limit transfer as supervisor - expected 200
+POST {{Api1_HostAddress}}/transfers
+Authorization: Bearer {{supervisorToken}}
+Content-Type: application/json
+
+{ "amount": 2000 }
+
+### Viewer has the scope but cannot create transfers - expected 403
+POST {{Api1_HostAddress}}/transfers
+Authorization: Bearer {{viewerToken}}
+Content-Type: application/json
+
+{ "amount": 100 }
+
+### Supervisor has user permissions but lacks the transfers scope - expected 403
+GET {{Api1_HostAddress}}/transfers
+Authorization: Bearer {{noScopeToken}}
+
+### Reconcile as service with placeholder subject and no roles - expected 200
+POST {{Api1_HostAddress}}/transfers/reconcile
+Authorization: Bearer {{serviceToken}}
+
+### User issuer is not accepted by the service scheme - expected 401
+POST {{Api1_HostAddress}}/transfers/reconcile
+Authorization: Bearer {{supervisorToken}}
+
+### Service issuer is not accepted by the user scheme - expected 401
+GET {{Api1_HostAddress}}/transfers
+Authorization: Bearer {{serviceToken}}
+
+### Missing authentication - expected 401
+GET {{Api1_HostAddress}}/transfers
+
+
+
+### Export task names for IAM - expected 200
+GET {{Api1_HostAddress}}/infrastructure/tasks
+Authorization: Bearer {{iamToken}}
+
+### Business audience is not accepted by infrastructure - expected 401
+GET {{Api1_HostAddress}}/infrastructure/tasks
+Authorization: Bearer {{serviceToken}}
+
+### User issuer cannot export tasks - expected 401
+GET {{Api1_HostAddress}}/infrastructure/tasks
+Authorization: Bearer {{supervisorToken}}
+
+### Task export requires authentication - expected 401
+GET {{Api1_HostAddress}}/infrastructure/tasks
+
+
+### Infrastructure token lacks the task-export scope - expected 403
+GET {{Api1_HostAddress}}/infrastructure/tasks
+Authorization: Bearer {{iamNoScopeToken}}
+
+### Infrastructure audience is not accepted by reconciliation - expected 401
+POST {{Api1_HostAddress}}/transfers/reconcile
+Authorization: Bearer {{iamToken}}
