@@ -1,10 +1,12 @@
+using Api1.Tests.Transfers;
+
 using OperationAuthorization.AspNetCore;
 
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 
-namespace Api1.Tests;
+namespace Api1.Tests.Infrastructure;
 
 public sealed class InfrastructureTests(ApiFactory factory) : IClassFixture<ApiFactory>
 {
@@ -19,7 +21,7 @@ public sealed class InfrastructureTests(ApiFactory factory) : IClassFixture<ApiF
         Assert.NotNull(catalog);
         Assert.Equal("api1", catalog.Service);
         Assert.Equal(1, catalog.Version);
-        Assert.Equal(["make-transfer", "make-transfer-higher-limit", "view-transfers"],
+        Assert.Equal(["api1:make-transfer", "api1:make-transfer-higher-limit", "api1:view-transfers"],
             catalog.Tasks.Order(StringComparer.Ordinal));
     }
 

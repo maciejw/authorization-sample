@@ -14,7 +14,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Security.Claims;
 
-namespace Api1.Tests;
+namespace Api1.Tests.Transfers;
 
 public sealed class TransferTests : IClassFixture<ApiFactory>
 {
@@ -33,13 +33,16 @@ public sealed class TransferTests : IClassFixture<ApiFactory>
     [InlineData("supervisor", "transfers", 100, HttpStatusCode.OK)]
     [InlineData("supervisor", "openid transfers other", 2000, HttpStatusCode.OK)]
     [InlineData("cashier", "transfers", 0, HttpStatusCode.BadRequest)]
-    public async Task Scope_and_operations_control_transfers(
+    public async Task Scope_and_task_requirements_control_transfers(
         string? role, string scope, int amount, HttpStatusCode expected)
     {
-        using var response = await Send(ApiFactory.Token(role, scope), amount);
-        Assert.Equal(expected, response.StatusCode);
-        if (expected == HttpStatusCode.OK)
-            Assert.Equal(amount, (await response.Content.ReadFromJsonAsync<TransferRequest>(TestContext.Current.CancellationToken))!.Amount);
+        foreach (var path in new[] { "/transfers" })
+        {
+            using var response = await Send(ApiFactory.Token(role, scope), amount, path);
+            Assert.Equal(expected, response.StatusCode);
+            if (expected == HttpStatusCode.OK)
+                Assert.Equal(amount, (await response.Content.ReadFromJsonAsync<TransferRequest>(TestContext.Current.CancellationToken))!.Amount);
+        }
     }
 
     [Theory]
@@ -61,9 +64,12 @@ public sealed class TransferTests : IClassFixture<ApiFactory>
             "expired" => ApiFactory.Token(expired: true),
             _ => throw new InvalidOperationException()
         };
-        using var response = await Send(token, 100);
-        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
-        Assert.Contains(response.Headers.WwwAuthenticate, value => value.Scheme == "Bearer");
+        foreach (var path in new[] { "/transfers" })
+        {
+            using var response = await Send(token, 100, path);
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+            Assert.Contains(response.Headers.WwwAuthenticate, value => value.Scheme == "Bearer");
+        }
     }
 
     [Fact]
@@ -77,9 +83,9 @@ public sealed class TransferTests : IClassFixture<ApiFactory>
         Assert.Equal(HttpStatusCode.OK, third.StatusCode);
     }
 
-    private async Task<HttpResponseMessage> Send(string? token, int amount)
+    private async Task<HttpResponseMessage> Send(string? token, int amount, string path = "/transfers")
     {
-        using var request = new HttpRequestMessage(HttpMethod.Post, "/transfers")
+        using var request = new HttpRequestMessage(HttpMethod.Post, path)
         {
             Content = JsonContent.Create(new TransferRequest(amount))
         };

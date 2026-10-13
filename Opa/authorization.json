@@ -1,0 +1,34 @@
+{
+  "authorization": {
+    "services": {
+      "api1": {
+        "roles": {
+          "viewer": [
+            "api1:view-transfers"
+          ],
+          "cashier": [
+            "api1:view-transfers",
+            "api1:make-transfer"
+          ],
+          "supervisor": [
+            "api1:view-transfers",
+            "api1:make-transfer-higher-limit"
+          ]
+        },
+        "tasks": {
+          "api1:view-transfers": [
+            "api1:view-transfers"
+          ],
+          "api1:make-transfer": [
+            "api1:make-transfer"
+          ],
+          "api1:make-transfer-higher-limit": [
+            "api1:make-transfer-higher-limit",
+            "api1:make-transfer"
+          ]
+        },
+        "standardLimit": 1000
+      }
+    }
+  }
+}

@@ -81,3 +81,52 @@ Authorization: Bearer {{iamNoScopeToken}}
 ### Infrastructure audience is not accepted by reconciliation - expected 401
 POST {{Api1_HostAddress}}/transfers/reconcile
 Authorization: Bearer {{iamToken}}
+
+### OPA comparison: cashier within standard limit - expected 200 (requires OPA)
+POST {{Api1_HostAddress}}/transfers/opa
+Authorization: Bearer {{cashierToken}}
+Content-Type: application/json
+
+{ "amount": 1000 }
+
+### OPA comparison: cashier exceeds standard limit - expected 403
+POST {{Api1_HostAddress}}/transfers/opa
+Authorization: Bearer {{cashierToken}}
+Content-Type: application/json
+
+{ "amount": 1001 }
+
+### OPA comparison: supervisor has higher-limit permission - expected 200 (requires OPA)
+POST {{Api1_HostAddress}}/transfers/opa
+Authorization: Bearer {{supervisorToken}}
+Content-Type: application/json
+
+{ "amount": 2000 }
+
+### Centralized OPA: cashier within standard limit - expected 200 (requires OPA)
+POST {{Api1_HostAddress}}/transfers/opa-centralized
+Authorization: Bearer {{cashierToken}}
+Content-Type: application/json
+
+{ "amount": 1000 }
+
+### Centralized OPA: cashier lacks higher-limit task - expected 403
+POST {{Api1_HostAddress}}/transfers/opa-centralized
+Authorization: Bearer {{cashierToken}}
+Content-Type: application/json
+
+{ "amount": 1001 }
+
+### Centralized OPA: supervisor role expands in OPA - expected 200 (requires OPA)
+POST {{Api1_HostAddress}}/transfers/opa-centralized
+Authorization: Bearer {{supervisorToken}}
+Content-Type: application/json
+
+{ "amount": 2000 }
+
+### Centralized OPA: viewer cannot forge grants in the request body - expected 403
+POST {{Api1_HostAddress}}/transfers/opa-centralized
+Authorization: Bearer {{viewerToken}}
+Content-Type: application/json
+
+{ "amount": 2000, "roles": ["supervisor"], "allowedTasks": ["api1:make-transfer", "api1:make-transfer-higher-limit"] }

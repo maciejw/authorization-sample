@@ -1,0 +1,2 @@
+service_auth:
+  signing_key: ${OPA_SERVICE_SIGNING_KEY}

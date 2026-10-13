@@ -5,7 +5,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 
-namespace Api1.Tests;
+namespace Api1.Tests.Transfers;
 
 public sealed class TransferAccessTests(ApiFactory factory) : IClassFixture<ApiFactory>
 {
@@ -20,7 +20,7 @@ public sealed class TransferAccessTests(ApiFactory factory) : IClassFixture<ApiF
     [InlineData("/transfers/1", null, "transfers", HttpStatusCode.Forbidden)]
     [InlineData("/transfers", "viewer", "openid transfers", HttpStatusCode.OK)]
     [InlineData("/transfers/1", "viewer", "openid transfers", HttpStatusCode.OK)]
-    public async Task Read_endpoints_require_both_group_scope_and_operation(
+    public async Task Read_endpoints_require_both_group_scope_and_task(
         string path, string? role, string scope, HttpStatusCode expected)
     {
         using var response = await Send(HttpMethod.Get, path, ApiFactory.Token(role, scope));

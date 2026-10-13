@@ -3,38 +3,28 @@ using System.Security.Claims;
 
 namespace OperationAuthorization;
 
-public interface IRoleDefinitionStore
-{
-    IEnumerable<string> GetTasks(string role);
-}
-
-public interface ITaskCatalog
-{
-    IEnumerable<string> GetTaskNames();
-    IEnumerable<string> GetOperations(string task);
-}
-
-// Register per request: expansion is lazy and shared by all operation checks.
+// Register per request: expansion is lazy and shared by all task checks.
 public sealed class RequestPermissions(IRoleDefinitionStore roles, ITaskCatalog tasks)
 {
     private ClaimsPrincipal? principal;
-    private ImmutableHashSet<string>? operations;
+    private ImmutableHashSet<string>? grantedTasks;
 
-    public IReadOnlySet<string> GetOperations(ClaimsPrincipal user)
+    public IReadOnlySet<string> GetTasks(ClaimsPrincipal user)
     {
-        if (ReferenceEquals(principal, user) && operations is not null)
-            return operations;
+        if (ReferenceEquals(principal, user) && grantedTasks is not null)
+            return grantedTasks;
 
-        operations = user.Identities.Where(identity => identity.IsAuthenticated)
+        grantedTasks = user.Identities.Where(identity => identity.IsAuthenticated)
             .SelectMany(identity => identity.FindAll(identity.RoleClaimType))
             .Select(claim => claim.Value)
             .Distinct(StringComparer.Ordinal)
-            .SelectMany(roles.GetTasks)
-            .SelectMany(tasks.GetOperations)
+            .SelectMany(roles.GetRoleDefinition)
+            .Distinct(StringComparer.Ordinal)
+            .SelectMany(tasks.GetGrantedTasks)
             .ToImmutableHashSet(StringComparer.Ordinal);
 
         principal = user;
 
-        return operations;
+        return grantedTasks;
     }
 }

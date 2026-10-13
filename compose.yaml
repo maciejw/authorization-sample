@@ -1,0 +1,23 @@
+services:
+  opa:
+    image: openpolicyagent/opa:1.21.2
+    command:
+      [
+        "run",
+        "--server",
+        "--addr=0.0.0.0:8181",
+        "--watch",
+        "--authentication=token",
+        "--authorization=basic",
+        "--config-file=/policies/config.yaml",
+        "/policies/system.authz.rego",
+        "/policies/api1.make_transfer_higher_limit_v1.rego",
+        "/policies/api1.make_transfer_higher_limit_v2.rego",
+        "/policies/authorization.json",
+      ]
+    environment:
+      OPA_SERVICE_SIGNING_KEY: ${OPA_SERVICE_SIGNING_KEY:-sample-only-opa-signing-key-at-least-32-bytes}
+    ports:
+      - "127.0.0.1:8181:8181"
+    volumes:
+      - ./Opa:/policies:ro

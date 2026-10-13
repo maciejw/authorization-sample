@@ -1,53 +1,55 @@
-using Microsoft.AspNetCore.Authorization;
+using Api1.Opa;
 
-using OperationAuthorization.AspNetCore;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Api1.Transfers;
 
 public static class TransferEndpoints
 {
-    private const string TransferAccess = "transfers-access";
+    private const string TransferAccessPolicy = "transfers-access";
 
-    public static AuthorizationBuilder AddTransfersApiPolicies(this AuthorizationBuilder builder) =>
-        builder
-            .AddPolicy(TransferAccess, policy => policy
+    public static AuthorizationOptions AddTransfersApiPolicies(this AuthorizationOptions builder)
+    {
+        builder.AddPolicy(TransferAccessPolicy, policy => policy
                 .AddAuthenticationSchemes(AuthenticationSchemes.Users)
                 .RequireAuthenticatedUser()
-                .RequireClaim("scope", "transfers"))
-            .AddPolicy(Operations.ViewTransfers, policy => policy
-                .AddRequirements(new OperationRequirement(Operations.ViewTransfers)))
-            .AddPolicy(Operations.MakeTransfer, policy => policy
-                .AddRequirements(new OperationRequirement(Operations.MakeTransfer)));
+                .RequireClaim("scope", "transfers"));
+
+        return builder;
+    }
 
     public static void MapTransfersApi(this IEndpointRouteBuilder endpoints)
     {
         // Illustrative data only; the sample has no payment infrastructure or persistence.
         var example = new TransferSummary(1, 100, "pending");
         var transfers = endpoints.MapGroup("/transfers")
-            .RequireAuthorization(TransferAccess);
+            .RequireAuthorization(TransferAccessPolicy);
 
         transfers.MapGet("", () => Results.Ok(new[] { example }))
-            .RequireAuthorization(Operations.ViewTransfers);
+            .RequireAuthorization(TaskCatalog.Tasks.ViewTransfers);
 
         transfers.MapGet("/{id:int}", (int id) => id == example.Id ? Results.Ok(example) : Results.NotFound())
-            .RequireAuthorization(Operations.ViewTransfers);
+            .RequireAuthorization(TaskCatalog.Tasks.ViewTransfers);
 
+        // Resource-based policy: the handler owns the amount-dependent rule.
         transfers.MapPost("", async (TransferRequest transfer, HttpContext context, IAuthorizationService authorization) =>
         {
             if (transfer.Amount <= 0)
             {
                 return Results.BadRequest();
             }
-            if (transfer.Amount > 1_000)
+            var result = await authorization.AuthorizeAsync(context.User, transfer, TaskCatalog.Tasks.MakeTransferHigherLimit);
+            if (!result.Succeeded)
             {
-                var result = await authorization.AuthorizeAsync(context.User, transfer,
-                    new OperationRequirement[] { new(Operations.MakeTransferHigherLimit) });
-                if (!result.Succeeded)
-                    return Results.Forbid(authenticationSchemes: [AuthenticationSchemes.Users]);
+                return Results.Forbid(authenticationSchemes: [AuthenticationSchemes.Users]);
             }
-            return Results.Ok(transfer);
-        }).RequireAuthorization(Operations.MakeTransfer);
 
+            // process transfer
+
+            return Results.Ok(transfer);
+        }).RequireAuthorization(TaskCatalog.Tasks.MakeTransfer);
+
+        transfers.MapOpaTransfersApi();
     }
 }
 

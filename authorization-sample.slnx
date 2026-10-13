@@ -1,4 +1,8 @@
 <Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="compose.yaml" />
+    <File Path="Directory.Packages.props" />
+  </Folder>
   <Project Path="Api1.Tests/Api1.Tests.csproj" />
   <Project Path="Api1/Api1.csproj" />
   <Project Path="OperationAuthorization.AspNetCore/OperationAuthorization.AspNetCore.csproj" />

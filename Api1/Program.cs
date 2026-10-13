@@ -1,3 +1,5 @@
+using Api1;
+using Api1.Opa;
 using Api1.Transfers;
 
 using Microsoft.AspNetCore.Authorization;
@@ -22,12 +24,21 @@ builder.Services.AddAuthentication().AddJwtBearer(AuthenticationSchemes.Users, o
 });
 
 builder.Services.AddScoped<ScopeNormalizationEvents>();
-builder.Services.AddSingleton<ITaskCatalog, TransferTasks>();
-builder.Services.AddSingleton<IRoleDefinitionStore, TransferRoles>();
+builder.Services.AddSingleton<ITaskCatalog, TaskCatalog>();
+builder.Services.AddSingleton<IRoleDefinitionStore, RoleDefinitions>();
 builder.Services.AddScoped<RequestPermissions>();
-builder.Services.AddScoped<IAuthorizationHandler, OperationHandler>();
-
-builder.Services.AddAuthorizationBuilder().AddTransferPolicies();
+builder.Services.AddScoped<IAuthorizationHandler, TaskHandler>();
+builder.Services.AddScoped<IAuthorizationHandler, TransferLimitHandler>();
+builder.Services.AddScoped<IAuthorizationHandler, OpaAuthorizationHandler>();
+builder.Services.AddHttpClient("opa", client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["HttpClients:Opa:BaseAddress"]!);
+    client.Timeout = TimeSpan.FromSeconds(3);
+    client.DefaultRequestHeaders.Authorization = new("Bearer",
+        OpaServiceToken.Create(builder.Configuration["HttpClients:Opa:SigningKey"]!));
+}).RedactLoggedHeaders(_ => false);
+builder.Services.AddAuthorization();
+builder.Services.AddOptions<AuthorizationOptions>().Configure<ITaskCatalog>(Policies.AddTransferPolicies);
 builder.Services.AddOperationAuthorizationInfrastructure();
 
 var app = builder.Build();
